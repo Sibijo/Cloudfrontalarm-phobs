@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Management (oprs) CloudWatch Alarms - CPU Memory Disk and Instance Status
+Parameters:
+  gitlabinstanceid:
+    Description: "GitLab Instance ID"
+    Default: i-0269f41d8d60e309f
+    Type: "String"
+  
+  gitlabinstancetype:
+    Description: "GitLab Instance Type"
+    Default: m5a.large
+    Type: "String"
+  
+  gitlabinstanceami:
+    Description: "GitLab AMI ID"
+    Default: ami-0c6eb2f41d3cbd786
+    Type: "String"
+  
+  managementsnsarn:
+    Description: "Please provide an ARN of SNS topic - WARNING Type"
+    Default: arn:aws:sns:eu-central-1:058400024763:sns-alerts-management-phobs-squadcast
+    Type: "String"
+
+  squardcastarn:
+    Description: "Please provide an ARN of Squadcast SNS topic - WARNING Type"
+    Default: arn:aws:sns:eu-central-1:058400024763:sns-alerts-phobs-shared-services
+    Type: "String"
+
+
+Resources:
+  #------------------- Gitlab --------------------------------
+  CPUAlarmGitlab: 
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "cw-management-phobs-gitlab-cpu-warning"
+      AlarmDescription: !Sub "Gitlab High CPU Usage 85%"
+      AlarmActions:
+        - !Ref managementsnsarn
+        - !Ref squardcastarn
+      OKActions:
+        - !Ref managementsnsarn
+        - !Ref squardcastarn
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '85'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref gitlabinstanceid
+  
+  MemoryAlarmGitlab:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "cw-management-phobs-gitlab-memory-warning"
+      AlarmDescription: !Sub "Gitlab High Memory Usage 85%"
+      AlarmActions:
+        - !Ref managementsnsarn
+        - !Ref squardcastarn
+      OKActions:
+        - !Ref managementsnsarn
+        - !Ref squardcastarn
+      MetricName: "mem_used_percent"
+      Namespace: CWAgent
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '85'
+      ComparisonOperator: GreaterThanOrEqualToThreshold 
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref gitlabinstanceid
+  
+  SystemStatusAlarmGitlab:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "cw-management-phobs-gitlab-statuscheck-critical"
+      AlarmDescription: !Sub "Gitlab System Status Check Failure"
+      Namespace: AWS/EC2
+      MetricName: StatusCheckFailed
+      Statistic: Minimum
+      Period: '60'
+      EvaluationPeriods: '1'
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: '0'
+      AlarmActions:
+        - !Ref managementsnsarn
+        - !Ref squardcastarn
+      OKActions:
+        - !Ref managementsnsarn
+        - !Ref squardcastarn
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref gitlabinstanceid
+
+  DiskAlarmGitlab:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "cw-management-phobs-gitlab-disk-warning"
+      AlarmDescription: !Sub "Gitlab Disk Usage Alert Data 80%"
+      Namespace: CWAgent
+      MetricName: disk_used_percent
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '1'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Threshold: '85'
+      AlarmActions:
+        - !Ref managementsnsarn
+        - !Ref squardcastarn
+      OKActions:
+        - !Ref managementsnsarn
+        - !Ref squardcastarn
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref gitlabinstanceid
+        - Name: path
+          Value: /
+        - Name: fstype
+          Value: ext4
+        - Name: device
+          Value: xvda1
+        - Name : ImageId
+          Value: !Ref gitlabinstanceami
+        - Name: InstanceType
+          Value: !Ref gitlabinstancetype
